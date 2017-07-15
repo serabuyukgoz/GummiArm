@@ -19,6 +19,10 @@ catkin_package(
     tf_conversions
 )
 
+add_compile_options(
+-std=c++11
+)
+
 include_directories(include)
 
 set(IKFAST_LIBRARY_NAME gummi_right_moveit_ikfast_plugin)

@@ -98,6 +98,10 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_compile_options(
+-std=c++11
+)
+
 ## Declare a cpp library
 # add_library(gummi_teleop
 #   src/${PROJECT_NAME}/gummi_teleop.cpp

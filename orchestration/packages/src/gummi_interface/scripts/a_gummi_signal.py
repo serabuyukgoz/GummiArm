@@ -19,12 +19,9 @@ class Reflex:
 		self.r = rospy.Rate(60)
 
 		self.name = name
-		self.data = 0.0
-		self.oldData = 0.0
 		self.index = 0
 		self.lists = [0.0]
 		self.flag = False
-		self.amplitude = 0.0
 		self.jointName = self.initJointNames(name)
 
 		rospy.Subscriber("/" + self.name + "_encoder_controller/state", JointState, self.Callback)
@@ -32,72 +29,60 @@ class Reflex:
 		self.motionArray = ([0.0]*10)
 		self.motionIndex = 0
 		self.hitFlag = False
+		self.data = 0.0
 		
 
 	def initJointNames(self, name):
 		return {
-			'elbow_encoder' : self.gummi.elbow,
-			'wrist_encoder' : self.gummi.wrist,
-			'shoulder_yaw_encoder' : self.gummi.shoulderYaw,
-			'shoulder_roll_encoder' : self.gummi.shoulderRoll,
-			'shoulder_pitch_encoder' : self.gummi.shoulderPitch,
+			'elbow' : self.gummi.elbow,
+			'wrist' : self.gummi.wrist,
+			'shoulder_yaw' : self.gummi.shoulderYaw,
+			'shoulder_roll' : self.gummi.shoulderRoll,
+			'shoulder_pitch' : self.gummi.shoulderPitch,
 		}[name]
 
 
 	def Callback(self, msg):
-
-		signal = msg.velocity
-		self.filterData(signal)		
-
+		self.filterData(msg.velocity)	
 
 	def filterData(self, data):
-
-		if abs(data) > 0.1:
-			data = data
-		else:
-			if self.index > 0:
-				data = data
-			else:
-				data = 0.0
-
-		
-		
-		#self.data = data
+		if abs(data) < 0.1:
+			if self.index == 0:
+				data = 0.0	
 
 		#self.checkMotion(data)
 
 		if self.flag == True:
-			self.findWave(data)
-	
+			self.findWave(data)	
 
-	def findWave(self, data):		
-
+	def findWave(self, data):
 		if data != 0.0:
 			self.lists.append(data)
 			self.index += 1
-			if self.index > 3:
-				self.oldData = self.lists[self.index-2]
-			else:
-				self.oldData = data
-
-		elif data == 0.0:
-			if self.oldData == 0.0:
-				if len(self.lists) > 1:
-					self.findAmplitude(self.lists)
-					self.setFlag(False)
-					self.clear()
-			else:
-				self.lists.append(data)
-				self.index += 1
-				if self.index > 3:
-					self.oldData = self.lists[self.index-2]
+		else:
+			if self.index > 0:
+				old = self.checkOld()
+				if old == True:
+					self.lists.append(data)
+					self.index += 1
 				else:
-					self.oldData = data
+					self.setFlag(False)
+					self.findAmplitude(self.lists)
+					
+
+	def checkOld(self):		
+		if self.index > 4:
+			if self.lists[self.index-2] == 0.0:
+				return False
+			else:
+				return True
+		else:
+			return True
 
 	def findAmplitude(self, array):
 		
 		print("==================" + self.name)
-		#print(array)
+		print(array)
 		maxEle = max(array)
 		minELe = min(array)
 
@@ -105,7 +90,7 @@ class Reflex:
 
 		magnitude = amplitude / 100
 
-
+		#cheking first element for direcion
 		if array[1] > 0.0:
 			print("UP")
 			direction = magnitude
@@ -113,12 +98,11 @@ class Reflex:
 			print("Down")
 			direction = -1 * magnitude
 
-		print("-------" + str(array[:5]))
 		print("Amplitude:  " + str(amplitude))
 		print(direction)
 		print("================")
 		
-		#self.move(direction)
+		self.move(direction)
 
 	def move(self, mag):
 		
@@ -126,46 +110,19 @@ class Reflex:
 		for i in range(0,100):
 			self.jointName.moveWith(mag, 0.5)
     		self.r.sleep()
-    		print(mag)
 
 		print("End of Reflex Motion")
+		self.clear()
 
-		# while hitFlag == False:
-		# 	print("?????????")
-		# 	hitFlag = self.check()
-
-		self.setFlag(True)	
+		self.setFlag(True)
+		print("move: " + str(self.flag))
 
 	def setFlag(self, data):
-		if data == False:
-			self.clear()
 		self.flag = data
 
 	def clear(self):
 		self.index = 0
 		self.lists = [0.0]
-		self.oldData = 0.0
-
-	# def checkMotion(self, data):
-
-	# 	self.motionArray[self.motionIndex] = data
-
-
-	# 	if self.motionIndex < 9:
-	# 		self.motionIndex += 1
-	# 	elif self.motionIndex == 9:
-	# 		self.motionIndex = 0
-	# 		ave = np.mean(self.motionArray)
-	# 		#print(ave)
-	# 		if ave == 0.0:
-	# 			self.hitFlag = True
-	# 		else:
-	# 			self.hitFlag = False
-	# 		#print(self.hitFlag)
-
-	# def check(self):
-	# 	return self.hitFlag
-
 
 def main(args):
 
@@ -209,8 +166,8 @@ def main(args):
 
     while not rospy.is_shutdown():
 
-		if reflex.gummi.teleop == 0:
-			reflex.gummi.doUpdate()
+		# if reflex.gummi.teleop == 0:
+		# 	reflex.gummi.doUpdate()
 
 		reflex.gummi.publishJointState()
 		r.sleep()

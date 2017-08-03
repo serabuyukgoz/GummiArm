@@ -5,8 +5,6 @@ import sys
 import random
 import time
 
-import numpy as np 
-
 from math import pi
 
 from gummi_interface.gummi import Gummi
@@ -22,15 +20,11 @@ class Reflex:
 		self.index = 0
 		self.lists = [0.0]
 		self.flag = False
+		self.reflexActivated = False
+		self.reflexTime = rospy.get_rostime()
 		self.jointName = self.initJointNames(name)
 
 		rospy.Subscriber("/" + self.name + "_encoder_controller/state", JointState, self.Callback)
-
-		self.motionArray = ([0.0]*10)
-		self.motionIndex = 0
-		self.hitFlag = False
-		self.data = 0.0
-		
 
 	def initJointNames(self, name):
 		return {
@@ -41,16 +35,19 @@ class Reflex:
 			'shoulder_pitch' : self.gummi.shoulderPitch,
 		}[name]
 
-
 	def Callback(self, msg):
-		self.filterData(msg.velocity)	
+		self.filterData(msg.velocity)
+		now = rospy.Time(msg.header.stamp.secs, msg.header.stamp.nsecs)
+		if self.reflexActivated == True:
+			delay = now - self.reflexTime
+			if delay.to_sec()>3:
+				#print("Flag Changeed")
+				self.flag = True
 
 	def filterData(self, data):
 		if abs(data) < 0.1:
 			if self.index == 0:
 				data = 0.0	
-
-		#self.checkMotion(data)
 
 		if self.flag == True:
 			self.findWave(data)	
@@ -107,15 +104,15 @@ class Reflex:
 	def move(self, mag):
 		
 		print("Reflex Activated")
+		self.reflexActivated = True
+		self.reflexTime = rospy.get_rostime()
 		for i in range(0,100):
-			self.jointName.moveWith(mag, 0.5)
-    		self.r.sleep()
+			self.jointName.moveWith(mag, 0.8)
+    			self.r.sleep()
 
 		print("End of Reflex Motion")
-		self.clear()
 
-		self.setFlag(True)
-		print("move: " + str(self.flag))
+	    	self.clear()
 
 	def setFlag(self, data):
 		self.flag = data
@@ -134,8 +131,6 @@ def main(args):
 
     reflex = Reflex("shoulder_roll")
 
-    #After first motiom
-
     print('WARNING: Moving joints sequentially to equilibrium positions.')
     reflex.gummi.doGradualStartup()
 
@@ -148,8 +143,6 @@ def main(args):
     for i in range(0,400):
         reflex.gummi.goRestingPose(False)
         r.sleep()
-
-
 
     print("GummiArm is live!")
 
@@ -166,11 +159,8 @@ def main(args):
 
     while not rospy.is_shutdown():
 
-		# if reflex.gummi.teleop == 0:
-		# 	reflex.gummi.doUpdate()
-
-		reflex.gummi.publishJointState()
-		r.sleep()
+    	reflex.gummi.publishJointState()
+    	r.sleep()
   
 if __name__ == '__main__':
 	main(sys.argv)

@@ -41,7 +41,7 @@ class Reflex:
 		if self.reflexActivated == True:
 			delay = now - self.reflexTime
 			if delay.to_sec()>3:
-				#print("Flag Changeed")
+				print("Flag Changeed" + str(self.name))
 				self.flag = True
 
 	def filterData(self, data):
@@ -62,7 +62,7 @@ class Reflex:
 				if old == True:
 					self.lists.append(data)
 					self.index += 1
-				else:
+				elif self.index > 6:
 					self.setFlag(False)
 					self.findAmplitude(self.lists)
 					
@@ -99,7 +99,12 @@ class Reflex:
 		print(direction)
 		print("================")
 		
-		self.move(direction)
+		if amplitude > 0.1:
+			print("move")		
+			self.move(direction)
+		else:
+			print("No reflex")
+			self.clear()
 
 	def move(self, mag):
 		

@@ -11,120 +11,118 @@ from gummi_interface.gummi import Gummi
 from dynamixel_msgs.msg import JointState
 
 class Reflex:
-	def __init__(self, name):
+    def __init__(self, name):
 
-		self.gummi = Gummi()
-		self.r = rospy.Rate(60)
+        self.gummi = Gummi()
+        self.r = rospy.Rate(60)
 
-		self.name = name
-		self.index = 0
-		self.lists = [0.0]
-		self.flag = False
-		self.reflexActivated = False
-		self.reflexTime = rospy.get_rostime()
-		self.jointName = self.initJointNames(name)
+        self.name = name
+        self.index = 0
+        self.lists = [0.0]
+        self.flag = False
+        self.reflexActivated = False
+        self.reflexTime = rospy.get_rostime()
+        self.jointName = self.initJointNames(name)
 
-		rospy.Subscriber("/" + self.name + "_encoder_controller/state", JointState, self.Callback)
+        rospy.Subscriber("/" + self.name + "_encoder_controller/state", JointState, self.Callback)
 
-	def initJointNames(self, name):
-		return {
-			'elbow' : self.gummi.elbow,
-			'wrist' : self.gummi.wrist,
-			'shoulder_yaw' : self.gummi.shoulderYaw,
-			'shoulder_roll' : self.gummi.shoulderRoll,
-			'shoulder_pitch' : self.gummi.shoulderPitch,
-		}[name]
+    def initJointNames(self, name):
+        return {
+        'elbow' : self.gummi.elbow,
+        'wrist' : self.gummi.wrist,
+        'shoulder_yaw' : self.gummi.shoulderYaw,
+        'shoulder_roll' : self.gummi.shoulderRoll,
+        'shoulder_pitch' : self.gummi.shoulderPitch,
+        }[name]
 
-	def Callback(self, msg):
-		self.filterData(msg.velocity)
-		now = rospy.Time(msg.header.stamp.secs, msg.header.stamp.nsecs)
-		if self.reflexActivated == True:
-			delay = now - self.reflexTime
-			if delay.to_sec()>3:
-				print("Flag Changeed" + str(self.name))
-				self.flag = True
+    def Callback(self, msg):
+        self.filterData(msg.velocity)
+        now = rospy.Time(msg.header.stamp.secs, msg.header.stamp.nsecs)
+        if self.reflexActivated == True:
+            delay = now - self.reflexTime
+            if delay.to_sec()>3:
+                #print("Flag Changeed" + str(self.name))
+                self.flag = True
 
-	def filterData(self, data):
-		if abs(data) < 0.1:
-			if self.index == 0:
-				data = 0.0	
+    def filterData(self, data):
+        if abs(data) < 0.1:
+            if self.index == 0:
+                data = 0.0	
 
-		if self.flag == True:
-			self.findWave(data)	
+        if self.flag == True:
+            self.findWave(data)	
 
-	def findWave(self, data):
-		if data != 0.0:
-			self.lists.append(data)
-			self.index += 1
-		else:
-			if self.index > 0:
-				old = self.checkOld()
-				if old == True:
-					self.lists.append(data)
-					self.index += 1
-				elif self.index > 6:
-					self.setFlag(False)
-					self.findAmplitude(self.lists)
-					
+    def findWave(self, data):
+        if data != 0.0:
+            self.lists.append(data)
+            self.index += 1
+        else:
+            if self.index > 0:
+                old = self.checkOld()
+                if old == True:
+                    self.lists.append(data)
+                    self.index += 1
+                elif self.index > 6:
+                    self.setFlag(False)
+                    self.findAmplitude(self.lists)
+                    self.clear()                  
 
-	def checkOld(self):		
-		if self.index > 4:
-			if self.lists[self.index-2] == 0.0:
-				return False
-			else:
-				return True
-		else:
-			return True
 
-	def findAmplitude(self, array):
-		
-		print("==================" + self.name)
-		print(array)
-		maxEle = max(array)
-		minELe = min(array)
+    def checkOld(self):		
+        if self.index > 4:
+            if self.lists[self.index-2] == 0.0:
+                return False
+            else:
+                return True
+        else:
+            return True
 
-		amplitude = abs(maxEle - minELe) / 2
+    def findAmplitude(self, array):
+	
+	    print("==================" + self.name)
+	    print(array)
+	    maxEle = max(array)
+	    minELe = min(array)
 
-		magnitude = amplitude / 100
+	    amplitude = abs(maxEle - minELe) / 2
 
-		#cheking first element for direcion
-		if array[1] > 0.0:
-			print("UP")
-			direction = magnitude
-		elif array[1] < 0.0:
-			print("Down")
-			direction = -1 * magnitude
+	    magnitude = amplitude / 100
 
-		print("Amplitude:  " + str(amplitude))
-		print(direction)
-		print("================")
-		
-		if amplitude > 0.1:
-			print("move")		
-			self.move(direction)
-		else:
-			print("No reflex")
-			self.clear()
+	    #cheking first element for direcion
+	    if array[1] > 0.0:
+		    print("UP")
+		    direction = magnitude
+	    elif array[1] < 0.0:
+		    print("Down")
+		    direction = -1 * magnitude
 
-	def move(self, mag):
-		
-		print("Reflex Activated")
-		self.reflexActivated = True
-		self.reflexTime = rospy.get_rostime()
-		for i in range(0,100):
-			self.jointName.moveWith(mag, 0.8)
-    			self.r.sleep()
+	    print("Amplitude:  " + str(amplitude))
+	    print(direction)
+	    print("================")
+	
+	    if amplitude > 0.1:
+		    print("move")		
+		    self.move(direction)
+	    else:
+		    print("No reflex")
+		    self.clear()
 
-		print("End of Reflex Motion")
+    def move(self, mag):
 
-	    	self.clear()
+        print("Reflex Activated")
+        self.reflexActivated = True
+        self.reflexTime = rospy.get_rostime()
+        for i in range(0,100):
+            self.jointName.moveWith(mag, 0.8)
+            self.r.sleep()		
+        print("End of Reflex Motion")
 
-	def setFlag(self, data):
-		self.flag = data
+    def setFlag(self, data):
+        self.flag = data
 
-	def clear(self):
-		self.index = 0
-		self.lists = [0.0]
+    def clear(self):
+        self.index = 0
+        self.lists = [0.0]
 
 def main(args):
 
@@ -161,6 +159,7 @@ def main(args):
     rospy.sleep(1)
     
     reflex.setFlag(True)
+    print("Gooo")
 
     while not rospy.is_shutdown():
 

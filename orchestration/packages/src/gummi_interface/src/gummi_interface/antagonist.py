@@ -3,9 +3,11 @@
 from math import pi
 import rospy
 import numpy as np
+import time
+import random
 
 from std_msgs.msg import Float64
-from msg import Diagnostics
+from msg import Diagnostics 
 from collections import deque
 
 from helpers import fetchParam
@@ -15,6 +17,8 @@ from forward_model import ForwardModel
 from equilibrium_model import EquilibriumModel
 from reflex import Reflex
 from dynamixel_controllers.srv import TorqueEnable
+
+from dynamixel_msgs.msg import JointState
 
 class Antagonist:
     def __init__(self, name):
@@ -55,6 +59,16 @@ class Antagonist:
 
         jointRange = self.angle.getMax() - self.angle.getMin()
         self.eqModel.calculateEqVelCalibration(jointRange)
+
+	##########################
+
+        rospy.Subscriber("/" + self.name + "_encoder_controller/state", JointState, self.Callback)
+        self.lists = list()
+        self.doReflex = False    # parent controlling response
+        self.reflexDetected = False
+        self.movement_timestamp = time.time()
+
+	############################
 
     def initVariables(self):
         self.errors = deque()
@@ -164,7 +178,8 @@ class Antagonist:
         currentTime = rospy.get_rostime()
         delay = currentTime - msgTime
 
-        if delay.to_sec() > 0.25:
+        #delay time shifted 5 from 0.25
+        if delay.to_sec() > 5:
             print("Warning: Delay of message larger than 0.25 seconds for encoder " + self.nameEncoder + ", stopping.")
         else:
             if self.angle.isBeyondMin() or self.angle.isBeyondMax():
@@ -177,6 +192,7 @@ class Antagonist:
 
                     if self.isOverloaded():
                         self.collisionReflex.updateExcitation(1.0)
+                        print("collision")
 
                     if self.collisionReflex.getContribution() > 0.5:
                         if self.collisionReflex.getContribution() > 0.9:
@@ -278,6 +294,7 @@ class Antagonist:
         else:
             return False
 
+    # compute angular offset
     def generateError(self):
         encoderAngle = self.angle.getEncoder()
         dAngle = self.angle.getDesired()
@@ -322,3 +339,48 @@ class Antagonist:
 
     def setCollisionResponse(self, response):
         self.collisionResponse = response
+
+######################################################
+
+    def Callback(self, msg):
+        if self.eqModel.is_moving():
+            return
+
+        if not self.doReflex:
+            return
+        #print self.is_moving()
+        self.filterData(msg.velocity)
+
+    def filterData(self, data):
+        if abs(data) > 0.15:
+            self.lists.append(data)
+        elif len(self.lists) > 0:
+            self.lists.append(data)
+
+        if len(self.lists) > 2:
+            self.findAmplitude(self.lists)
+            self.lists = list()
+
+    def findAmplitude(self, array):        
+        print("==================" + self.name)
+        #amplitude = abs(max(array)-min(array))
+        magnitude = abs(array[1]) / 50
+        magnitude = max(0,min(0.03,magnitude))
+
+        #find sign of first element and decide direction
+        direction = np.sign(array[1]) * magnitude 
+        print(direction)
+        self.reflexDetected = True
+        self.movement_timestamp = time.time()
+        self.moveWith(direction, 0.5)
+        print("================")	
+
+    def is_moving(self):
+        if self.eqModel.is_moving():
+            print "moving"
+            self.movement_timestamp = time.time()
+            return True
+        else:
+            if time.time() - self.movement_timestamp > 3:
+                self.reflexDetected = False
+            return self.reflexDetected

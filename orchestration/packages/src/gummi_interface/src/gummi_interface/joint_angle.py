@@ -32,10 +32,13 @@ class JointAngle:
         self.dVelocity = 0
 
         self.lastAngle = 0
+        
+        self.is_moving = False
 
     def encoderCallback(self, msg):
         angle = msg.current_pos * self.sign
         velocity = msg.velocity * self.sign
+        self.is_moving = msg.is_moving
         self.msgTime = rospy.Time(msg.header.stamp.secs, msg.header.stamp.nsecs)
         if abs(angle) <=  math.pi * 4:
             if self.encoderFlag and msg.goal_pos == angle:

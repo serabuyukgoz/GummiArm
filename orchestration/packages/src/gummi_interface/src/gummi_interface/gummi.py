@@ -259,7 +259,6 @@ class Gummi:
         self.wrist.setCollisionResponse(wrist)
 
     def setReflexFlag(self):
-	    #print("Chaeck flag")
         items = list()
         items.append(self.shoulderYaw.is_moving())
         items.append(self.shoulderRoll.is_moving())
@@ -274,8 +273,8 @@ class Gummi:
             self.elbow.doReflex = False
             self.wrist.doReflex = False
         else:
-            #self.shoulderYaw.doReflex = True
+            self.shoulderYaw.doReflex = True
             self.shoulderRoll.doReflex = True
-            #self.shoulderPitch.doReflex = True
-            #self.elbow.doReflex = True
-            #self.wrist.doReflex = True
+            self.shoulderPitch.doReflex = True
+            self.elbow.doReflex = True
+            self.wrist.doReflex = True

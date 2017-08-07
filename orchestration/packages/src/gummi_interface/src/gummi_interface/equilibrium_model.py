@@ -79,4 +79,10 @@ class EquilibriumModel:
         return self.cCocontraction
         
 
+    def is_moving(self):
+        flexor_moving = self.flexor.angle.is_moving
+        extensor_moving = self.extensor.angle.is_moving
+        return (flexor_moving or extensor_moving)
+
+
 

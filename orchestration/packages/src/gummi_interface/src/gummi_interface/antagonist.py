@@ -362,10 +362,10 @@ class Antagonist:
             self.lists = list()
 
     def findAmplitude(self, array):        
-        print("==================" + self.name)
+        print("Enter Callback ===========" + self.name)
         #amplitude = abs(max(array)-min(array))
-        magnitude = abs(array[1]) / 50
-        magnitude = max(0,min(0.03,magnitude))
+        magnitude = abs(array[1])
+        magnitude = max(0,min(0.3,magnitude))
 
         #find sign of first element and decide direction
         direction = np.sign(array[1]) * magnitude 
@@ -373,7 +373,7 @@ class Antagonist:
         self.reflexDetected = True
         self.movement_timestamp = time.time()
         self.moveWith(direction, 0.5)
-        print("================")	
+        print("Exit Callback ==========" + self.name)	
 
     def is_moving(self):
         if self.eqModel.is_moving():
@@ -384,3 +384,4 @@ class Antagonist:
             if time.time() - self.movement_timestamp > 3:
                 self.reflexDetected = False
             return self.reflexDetected
+

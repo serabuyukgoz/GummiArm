@@ -26,20 +26,12 @@ def main(args):
         gummi.goRestingPose(False)
         r.sleep()
 
-    for i in range(0,100):
-        gummi.shoulderRoll.moveWith(0.002, 0.05)
-        r.sleep()
-
     gummi.setCollisionResponses(False, False, False, False, False)
     rospy.loginfo("GummiArm is live!")
 
-  #  gummi.shoulderRoll.setFlag(True)
-
     while not rospy.is_shutdown():
-#        if gummi.teleop == 0 and gummi.velocity_control == 0:
- #           gummi.doUpdate()
-
-        gummi.setReflexFlag()
+        if gummi.teleop == 0 and gummi.velocity_control == 0:
+            gummi.doUpdate()
 
         gummi.publishJointState()
         r.sleep()

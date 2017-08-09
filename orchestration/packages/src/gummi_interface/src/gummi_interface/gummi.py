@@ -265,7 +265,6 @@ class Gummi:
         items.append(self.shoulderPitch.is_moving())
         items.append(self.elbow.is_moving())
         items.append(self.wrist.is_moving())
-        print(items)
 
         if any(items):
             self.shoulderYaw.doReflex = False

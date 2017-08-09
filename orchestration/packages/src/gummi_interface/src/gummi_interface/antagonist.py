@@ -8,6 +8,7 @@ import random
 
 from std_msgs.msg import Float64
 from msg import Diagnostics 
+from msg import HitDetectReflex
 from collections import deque
 
 from helpers import fetchParam
@@ -19,6 +20,8 @@ from reflex import Reflex
 from dynamixel_controllers.srv import TorqueEnable
 
 from dynamixel_msgs.msg import JointState
+from std_msgs.msg import Int8
+
 
 class Antagonist:
     def __init__(self, name):
@@ -67,6 +70,9 @@ class Antagonist:
         self.doReflex = False    # parent controlling response
         self.reflexDetected = False
         self.movement_timestamp = time.time()
+        self.reflexTime = time.time()
+        self.pubHit = rospy.Publisher('hit_signal', HitDetectReflex, queue_size=5) 
+        self.pubTest = rospy.Publisher('test_hit_signal', Int8, queue_size=5 )
 
 	############################
 
@@ -203,6 +209,8 @@ class Antagonist:
                         self.doUpdateWhenFree()
                 else:
                     self.doUpdateWhenFree()
+            #    if self.reflexDetected == True:
+             #       if time.time() - self.reflexTime > 3:
 
         self.eqModel.capCocontraction()
         self.eqModel.createCommand()
@@ -365,19 +373,33 @@ class Antagonist:
         print("Enter Callback ===========" + self.name)
         #amplitude = abs(max(array)-min(array))
         magnitude = abs(array[1])
-        magnitude = max(0,min(0.3,magnitude))
+        amplitude = max(0,min(0.3,magnitude))
 
         #find sign of first element and decide direction
-        direction = np.sign(array[1]) * magnitude 
+        direction = np.sign(array[1])
+        magnitude = amplitude*amplitude 
         print(direction)
+        self.pubTest.publish(np.sign(array[1]))
         self.reflexDetected = True
         self.movement_timestamp = time.time()
-        self.moveWith(direction, 0.5)
+        self.reflexTime = rospy.get_rostime()
+        self.hitPublish(amplitude, magnitude, direction)
+        #self.moveWith(direction, 0.5)
         print("Exit Callback ==========" + self.name)	
 
+    def hitPublish(self, amplitude,magnitude, direction):
+        hitmsg = HitDetectReflex()
+        hitmsg.name = self.name
+        hitmsg.hit = True
+        hitmsg.amplitude = amplitude
+        hitmsg.direction = direction
+        hitmsg.magnitude = magnitude
+        hitmsg.time = self.reflexTime
+        self.pubHit.publish(hitmsg)         
+        
     def is_moving(self):
         if self.eqModel.is_moving():
-            print "moving"
+            #print "moving"
             self.movement_timestamp = time.time()
             return True
         else:

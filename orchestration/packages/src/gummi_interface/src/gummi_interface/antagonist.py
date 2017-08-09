@@ -20,8 +20,6 @@ from reflex import Reflex
 from dynamixel_controllers.srv import TorqueEnable
 
 from dynamixel_msgs.msg import JointState
-from std_msgs.msg import Int8
-
 
 class Antagonist:
     def __init__(self, name):
@@ -72,7 +70,6 @@ class Antagonist:
         self.movement_timestamp = time.time()
         self.reflexTime = time.time()
         self.pubHit = rospy.Publisher('hit_signal', HitDetectReflex, queue_size=5) 
-        self.pubTest = rospy.Publisher('test_hit_signal', Int8, queue_size=5 )
 
 	############################
 
@@ -377,9 +374,8 @@ class Antagonist:
 
         #find sign of first element and decide direction
         direction = np.sign(array[1])
-        magnitude = amplitude*amplitude 
+        magnitude = amplitude*direction 
         print(direction)
-        self.pubTest.publish(np.sign(array[1]))
         self.reflexDetected = True
         self.movement_timestamp = time.time()
         self.reflexTime = rospy.get_rostime()
@@ -399,7 +395,6 @@ class Antagonist:
         
     def is_moving(self):
         if self.eqModel.is_moving():
-            #print "moving"
             self.movement_timestamp = time.time()
             return True
         else:

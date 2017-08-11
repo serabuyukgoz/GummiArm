@@ -1,0 +1,24 @@
+<launch>
+ <group ns="moveit">
+  <node name="gummi_right_arm_controller" pkg="gummi_moveit_config" type="follow_joint_trajectory.py" output="screen"/>
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find gummi_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <!-- It will be necessary to use the transform until the hand is not modelled inside Moveit! -->
+  <node name="redirect" pkg="topic_tools" type="transform" args="/gummi/joint_states joint_states sensor_msgs/JointState 'sensor_msgs.msg.JointState(header=m.header,name=m.name[:-1],position=m.position[:-1],velocity=m.velocity[:-1],effort=m.effort)' --import sensor_msgs" output="screen"/>
+
+
+  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
+  <include file="$(find gummi_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="false"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="kinect" value="false"/>
+  </include>
+
+</group>
+</launch>

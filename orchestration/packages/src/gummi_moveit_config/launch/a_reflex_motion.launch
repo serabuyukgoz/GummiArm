@@ -1,0 +1,5 @@
+<launch>
+    <group ns="moveit">
+        <node name="move" pkg="gummi_moveit_config" type="a_reflex_motion.py" output="screen"/>
+    </group>
+</launch>

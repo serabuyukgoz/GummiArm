@@ -256,7 +256,7 @@ class Gummi:
         self.shoulderRoll.setCollisionResponse(shoulderRoll)
         self.shoulderPitch.setCollisionResponse(shoulderPitch)
         self.elbow.setCollisionResponse(elbow)
-        self.wrist.setCollisionResponse(wrist)
+       # self.wrist.setCollisionResponse(wrist)
 
     def setReflexFlag(self):
         items = list()
@@ -264,17 +264,17 @@ class Gummi:
         items.append(self.shoulderRoll.is_moving())
         items.append(self.shoulderPitch.is_moving())
         items.append(self.elbow.is_moving())
-        items.append(self.wrist.is_moving())
+       # items.append(self.wrist.is_moving())
 
         if any(items):
             self.shoulderYaw.doReflex = False
             self.shoulderRoll.doReflex = False
             self.shoulderPitch.doReflex = False
             self.elbow.doReflex = False
-            self.wrist.doReflex = False
+           # self.wrist.doReflex = False
         else:
             self.shoulderYaw.doReflex = True
             self.shoulderRoll.doReflex = True
             self.shoulderPitch.doReflex = True
             self.elbow.doReflex = True
-            self.wrist.doReflex = True
+           # self.wrist.doReflex = True

@@ -206,8 +206,6 @@ class Antagonist:
                         self.doUpdateWhenFree()
                 else:
                     self.doUpdateWhenFree()
-            #    if self.reflexDetected == True:
-             #       if time.time() - self.reflexTime > 3:
 
         self.eqModel.capCocontraction()
         self.eqModel.createCommand()
@@ -370,12 +368,12 @@ class Antagonist:
         print("Enter Callback ===========" + self.name)
         #amplitude = abs(max(array)-min(array))
         magnitude = abs(array[1])
-        amplitude = max(0,min(0.3,magnitude))
+        amplitude = max(0,min(0.25,magnitude))
 
         #find sign of first element and decide direction
         direction = np.sign(array[1])
         magnitude = amplitude*direction 
-        print(direction)
+        print(magnitude)
         self.reflexDetected = True
         self.movement_timestamp = time.time()
         self.reflexTime = rospy.get_rostime()

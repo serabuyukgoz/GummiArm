@@ -14,16 +14,6 @@ import copy
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
-#### no move it in this file YET
-#defined positions
-#NOT    lt = (0.7158577010132993, 1.5186409800067848, -0.12783173232380343, -0.7761942786701345, 0.0, -0.010226538585904275, -0.15851134808151626, -2.3674436826368397)
-#WORK    lm = (0.6647250080837779, 0.02045307717180855, -0.10226538585904275, -0.8022719520641903, 0.0, -0.010226538585904275, -0.18407769454627695, -2.3674436826368397)
-# W   lb = (0.4857605828304531, -0.1227184630308513, -0.05113269292952138, -0.4663301595172349, -0.5880259686894959, -0.010226538585904275, -0.06647250080837779, -2.3674436826368397)
-# W   mb = (-0.4192880820220753, -0.015339807878856412, 0.07158577010132992, -0.29299033048615747, -0.8385761640441506, -0.010226538585904275, 0.0, -2.3674436826368397)
-# w   rm = (-0.17896442525332482, -0.3119094268700804, 0.1227184630308513, 1.55545651891604, 0.0, -0.015339807878856412, 0.37326865838550605, -0.36304211979960177)
-# w   rt = (-0.5062136600022616, -0.07158577010132992, 1.0277671278833795, -1.3314953238847365, -0.0051132692929521375, -0.0051132692929521375, -0.09715211656609062, -0.3272492347489368)
-# NOT   bt = (0.010226538585904275, -1.3959225169759335, 0.0051132692929521375, -0.0046019423636569235, 0.02045307717180855, -0.010226538585904275, 0.015339807878856412, -0.06647250080837779)   
-
 
 class ReflexMotion:
     def __init__(self):
@@ -33,24 +23,66 @@ class ReflexMotion:
         self.gummi = Gummi()
         
         rospy.Subscriber('hit_signal', HitDetectReflex, self.Callback)
-    
+
+        self.is_running = False
+
     def Callback(self, data):
+        if self.is_running:
+            return
+        self.is_running = True
+
+        name = data.name
         hit = data.direction
-        self.decidePath(hit)
+        amplitude = data.amplitude
+        print(name + " Data " + str(hit))
+        self.path(hit, name, amplitude)
         
-    def decidePath(self, hit):
-        if hit > 0:
-            msg = (-0.5062136600022616, -0.07158577010132992, 1.0277671278833795, -1.3314953238847365, -0.0051132692929521375, -0.0051132692929521375, -0.09715211656609062, -0.3272492347489368)
-            self.move(msg)
-        else:  
-            msg = (0.010226538585904275, -1.3959225169759335, 0.0051132692929521375, -0.0046019423636569235, 0.02045307717180855, -0.010226538585904275, 0.015339807878856412, -0.06647250080837779)   
-            self.move(msg)
+    def path(self, hit, name, amp):
+         
+        if hit < 0:
+            print("UP")
+            if name == 'elbow' or name == 'shoulder_roll':
+                if amp > 0.15:
+                    print("left top")
+                    angles = [  0.5062136600022616, 
+                                0.9612946270750019, 
+                                -0.08692557798018634, 
+                                -0.7286408742456796, 
+                                0.0,
+                                -0.010226538585904275, 
+                                0.0, 
+                                -0.16873788666742054]
+                    self.move(angles)
+                else:
+                    print("left mid")
+                    angles = [0.5931392379824479, 0.0, 0.0, -0.8513593372765309, 0.0, -0.010226538585904275, 0.0, -0.16873788666742054]
+                    self.move(angles)
+            else:
+                print("left bottom")
+                angles = [0.29145634969827183, -0.07158577010132992, 0.0, -0.4724660826687775, -0.8385761640441506, -0.010226538585904275, 0.10737865515199489, -0.16873788666742054]
+                self.move(angles)
+        elif hit > 0:
+            if name == 'elbow' or name == 'shoulder_roll':
+                print("right back")
+                angles = [-0.41417481272912315, -0.4908738521234052, 0.4192880820220753, 1.2701360923693108, -0.8232363561652941, -0.010226538585904275, 0.3119094268700804, -0.16873788666742054] 
+                self.move(angles)
+            else:
+                if amp > 0.15:
+                    print("right bottom")
+                    angles = [-0.260776733940559, -0.19430423313218123, 0.8385761640441506, -0.20708740636456155, -0.7311975088921556, -0.010226538585904275, 0.24032365676875048, -0.16873788666742054]
+                    self.move(angles)
+                else:
+                    print("mid bottom")
+                    angles = [-0.1227184630308513, -0.07158577010132992, 0.0, 0.15800002115222103, -0.782330201821677, -0.010226538585904275, 0.06647250080837779, -0.16873788666742054] 
+                    self.move(angles)
 
     def move(self, msg):
-        for i in range (0,500):
+        for i in range (0,100):
            # gummi.setCocontraction(0.6, 0.6, 0.6, 0.6, 0.6)
             self.gummi.goTo(msg, False)
-            self.r.sleep()    
+            self.r.sleep()
+
+        self.is_running = False
 
 def main(args):
 
@@ -69,10 +101,8 @@ def main(args):
 
     reflex.gummi.setCollisionResponses(False, False, False, False, False)
     rospy.loginfo("GummiArm is live!")
-    
-    print(str(gummi.lastPositions))
-    print("============================")
-    print(gummi.getJointAngles()) #getposition
+    print("A Full body motion with GoTo")
+
     while not rospy.is_shutdown():
       #  if gummi.teleop == 0 and gummi.velocity_control == 0:
       #      gummi.doUpdate()

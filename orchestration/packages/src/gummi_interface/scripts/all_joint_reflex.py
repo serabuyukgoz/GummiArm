@@ -77,12 +77,17 @@ class JointByJoint():
         self.reflex_joint["shoulder_yaw_encoder"] = 0
         self.timeCheck = -1
         rospy.loginfo("Elbow : " + str(self.elbowdeg) +
-                        "Wrist : " + str(self.wristdeg) +
-                        "Roll: " + str(self.rolldeg) +
-                        "Pitch : " + str(self.pitchdeg) +
-                        "Yaw : " + str(self.yawdeg))
+                        "-- Wrist : " + str(self.wristdeg) +
+                        "-- Roll: " + str(self.rolldeg) +
+                        "-- Pitch : " + str(self.pitchdeg) +
+                        "-- Yaw : " + str(self.yawdeg))
 
 def main(args):
+
+    rest = (0.26589000323351114, 0.3681553890925539, 0.20964404101103765, -0.6688156235181395, 0.1380582709097077, -0.0409061543436171, 0.22498384888989406, -0.2505501953546547)
+    back = (0.0, -0.9919742428327146, 0.0, 0.0030679615757712823, 0.0, -0.010226538585904275, -0.08692557798018634, -0.15851134808151626)
+    lie = (-0.0051132692929521375, 0.966407896367954, 0.0, -0.0046019423636569235, -0.6442719309119693, -0.04601942363656924, 0.3170226961630325, -0.19941750242513337)
+
     rospy.init_node('GummiArm', anonymous=True)
     r = rospy.Rate(60)
     gummi = Gummi()
@@ -99,6 +104,9 @@ def main(args):
         gummi.goRestingPose(False)
         r.sleep()
 
+    for i in range (0,500):
+        gummi.goTo(rest, False)
+        r.sleep()
     gummi.setCollisionResponses(False, False, False, False, False)
     rospy.loginfo("GummiArm is live!")
     rospy.sleep(1)
@@ -109,6 +117,7 @@ def main(args):
         if reflex.hit == True:
             rospy.loginfo("Reflex Motion!!")
             for i in range(0,200):
+            #only change equilibrum velocity
                gummi.elbow.moveWith(reflex.elbowdeg, 0.5)
                gummi.wrist.moveWith(reflex.wristdeg, 0.5)
                gummi.shoulderRoll.moveWith(reflex.rolldeg, 0.5)
@@ -116,9 +125,18 @@ def main(args):
                gummi.shoulderYaw.moveWith(reflex.yawdeg, 0.5)
                r.sleep()
 
-            reflex.hit = False
+
+            # rospy.sleep(4)
+            #
+            # for i in range (0,500):
+            #     gummi.goTo(rest, False)
+            #     r.sleep()
+
+
             rospy.sleep(1)
+            reflex.hit = False
             reflex.listenHit = True
+
         elif gummi.teleop == 0 and gummi.velocity_control == 0:
             gummi.doUpdate()
 
